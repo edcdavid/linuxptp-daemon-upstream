@@ -293,8 +293,11 @@ func extractMetrics(messageTag string, processName string, ifaces config.IFaces,
 		state = clockstate
 		iface = ifaceName
 	}
+	fmt.Printf("David2: %s\n",output)
 	if processName == ptp4lProcessName {
+		fmt.Printf("David3: %s\n",output)
 		if portId, role := extractPTP4lEventState(output); portId > 0 {
+			fmt.Printf("David4: %s\n",output)
 			if len(ifaces) >= portId-1 {
 				UpdateInterfaceRoleMetrics(processName, ifaces[portId-1].Name, role)
 				if role == SLAVE {
@@ -630,7 +633,7 @@ func deleteProcessStatusMetrics(config, process string) {
 func extractPTP4lEventState(output string) (portId int, role ptpPortRole) {
 	replacer := strings.NewReplacer("[", " ", "]", " ", ":", " ")
 	output = replacer.Replace(output)
-
+	fmt.Printf("David5: %s\n",output)
 	//ptp4l 4268779.809 ptp4l.o.config port 2: LISTENING to PASSIVE on RS_PASSIVE
 	//ptp4l 4268779.809 ptp4l.o.config port 1: delay timeout
 	index := strings.Index(output, " port ")
@@ -657,7 +660,7 @@ func extractPTP4lEventState(output string) (portId int, role ptpPortRole) {
 		portId = 0
 		return
 	}
-
+	fmt.Printf("David6: %s\n",output)
 	if strings.Contains(output, "UNCALIBRATED to SLAVE") {
 		role = SLAVE
 	} else if strings.Contains(output, "UNCALIBRATED to PASSIVE") || strings.Contains(output, "MASTER to PASSIVE") ||

@@ -1008,6 +1008,7 @@ func (p *ptpProcess) processPTPMetrics(output string) {
 		logEntry := synce.ParseLog(output)
 		p.ProcessSynceEvents(logEntry)
 	} else {
+		fmt.Printf("David1: %s\n",output)
 		configName, source, ptpOffset, clockState, iface := extractMetrics(p.messageTag, p.name, p.ifaces, output)
 		if iface != "" { // for ptp4l/phc2sys this function only update metrics
 			var values map[event.ValueType]interface{}
