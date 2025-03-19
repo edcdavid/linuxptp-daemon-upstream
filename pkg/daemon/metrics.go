@@ -222,6 +222,7 @@ func RegisterMetrics(nodeName string) {
 
 		// Ensure Prometheus has time to scrape otherwise the first update will be missing
 		glog.Info("Wait 10 seconds for prometheus to scape metrics")
+		fmt.Println("Wait 10 seconds for prometheus to scape metrics")
 		time.Sleep(10 * time.Second)
 	})
 

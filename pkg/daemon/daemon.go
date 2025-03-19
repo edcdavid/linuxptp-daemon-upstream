@@ -895,7 +895,7 @@ func (p *ptpProcess) cmdRun(stdoutToSocket bool) {
 	}
 
 	for {
-		glog.Infof("Starting %s...", p.name)
+		glog.Infof("Starting David %s...", p.name)
 		glog.Infof("%s cmd: %+v", p.name, p.cmd)
 
 		cmdReader, err := p.cmd.StdoutPipe()
