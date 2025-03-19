@@ -219,6 +219,9 @@ func RegisterMetrics(nodeName string) {
 		prometheus.Unregister(collectors.NewGoCollector())
 
 		NodeName = nodeName
+
+		// Ensure Prometheus has time to scrape otherwise the first update will be missing
+		time.Sleep(5 * time.Second)
 	})
 
 }
