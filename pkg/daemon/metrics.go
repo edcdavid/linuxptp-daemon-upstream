@@ -295,10 +295,11 @@ func extractMetrics(messageTag string, processName string, ifaces config.IFaces,
 	}
 	fmt.Printf("David2: %s\n",output)
 	if processName == ptp4lProcessName {
-		fmt.Printf("David3: %s\n",output)
+		fmt.Printf("David3: %v\n",output)
 		if portId, role := extractPTP4lEventState(output); portId > 0 {
-			fmt.Printf("David4: %s\n",output)
+			fmt.Printf("David4: ifaces=%v, portId=%v, role=%v \n",&ifaces, portId, role)
 			if len(ifaces) >= portId-1 {
+				fmt.Printf("David7: %s\n",output)
 				UpdateInterfaceRoleMetrics(processName, ifaces[portId-1].Name, role)
 				if role == SLAVE {
 					masterOffsetIface.set(configName, ifaces[portId-1].Name)
