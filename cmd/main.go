@@ -42,6 +42,7 @@ func flagInit(cp *cliParams) {
 }
 
 func main() {
+	time.Sleep(5*time.Minute)
 	cp := &cliParams{}
 	flag.Parse()
 	flagInit(cp)
