@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/k8snetworkplumbingwg/linuxptp-daemon/pkg/leakypipe"
 	"github.com/k8snetworkplumbingwg/linuxptp-daemon/pkg/synce"
 
 	"github.com/k8snetworkplumbingwg/linuxptp-daemon/pkg/config"
@@ -48,6 +49,8 @@ const (
 	HAInDomainIndicator             = "as domain source clock"
 	HAOutOfDomainIndicator          = "as out-of-domain source"
 	MessageTagSuffixSeperator       = ":"
+	socketLogChunkMaxNum            = 10   // 10 chunks
+	socketLogChunkSize              = 1024 // of 1kb each
 )
 
 var (
@@ -909,27 +912,39 @@ func (p *ptpProcess) cmdRun(stdoutToSocket bool) {
 		// don't discard process stderr output
 		p.cmd.Stderr = p.cmd.Stdout
 
-		if !stdoutToSocket {
-			scanner := bufio.NewScanner(cmdReader)
-			processStatus(nil, p.name, p.messageTag, PtpProcessUp)
-			go func() {
-				for scanner.Scan() {
-					output := scanner.Text()
-					if regexErr != nil || !logFilterRegex.MatchString(output) {
-						fmt.Printf("%s\n", output)
-					}
-					p.processPTPMetrics(output)
+		rootScanner := bufio.NewScanner(cmdReader)
+
+		downstreamPipe := leakypipe.New(socketLogChunkMaxNum, socketLogChunkSize) // buffers up to 10 chunks of 1kb, then starts dropping logs
+		defer downstreamPipe.Close()
+		go func() {
+			if !stdoutToSocket {
+				processStatus(nil, p.name, p.messageTag, PtpProcessUp)
+			}
+			for rootScanner.Scan() {
+				outputLogs := rootScanner.Text()
+				// Write on downstream buffer
+				_, _ = downstreamPipe.Write([]byte(outputLogs + "\n"))
+
+				// Write on local output log
+				if regexErr != nil || !logFilterRegex.MatchString(outputLogs) {
+					fmt.Printf("%s\n", outputLogs)
+				}
+				if !stdoutToSocket {
+					p.processPTPMetrics(outputLogs)
 					if p.name == ptp4lProcessName {
-						if strings.Contains(output, ClockClassChangeIndicator) {
+						if strings.Contains(outputLogs, ClockClassChangeIndicator) {
 							go p.updateClockClass(nil)
 						}
 					} else if p.name == phc2sysProcessName && len(p.haProfile) > 0 {
-						p.announceHAFailOver(nil, output) // do not use go routine since order of execution is important here
+						p.announceHAFailOver(nil, outputLogs) // do not use go routine since order of execution is important here
 					}
 				}
-				done <- struct{}{}
-			}()
-		} else {
+
+			}
+			done <- struct{}{}
+		}()
+
+		if stdoutToSocket {
 			go func() {
 			connect:
 				select {
@@ -944,7 +959,7 @@ func (p *ptpProcess) cmdRun(stdoutToSocket bool) {
 						goto connect
 					}
 				}
-				scanner := bufio.NewScanner(cmdReader)
+				scanner := bufio.NewScanner(downstreamPipe)
 				processStatus(p.c, p.name, p.messageTag, PtpProcessUp)
 				for _, d := range p.depProcess {
 					if d != nil {
@@ -958,9 +973,6 @@ func (p *ptpProcess) cmdRun(stdoutToSocket bool) {
 						go p.updateClockClass(p.c)
 					}
 
-					if regexErr != nil || !logFilterRegex.MatchString(output) {
-						fmt.Printf("%s\n", output)
-					}
 					// for ts2phc from 4.2 onwards replace /dev/ptpX by actual interface name
 					output = fmt.Sprintf("%s\n", p.replaceClockID(output))
 					// for ts2phc, we need to extract metrics to identify GM state
