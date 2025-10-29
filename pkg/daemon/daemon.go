@@ -1234,7 +1234,7 @@ func (p *ptpProcess) processPTPMetrics(output string) {
 		p.hasCollectedMetrics = true
 		if iface != "" { // for ptp4l/phc2sys this function only update metrics
 			var values map[event.ValueType]interface{}
-			ifaceName := masterOffsetIface.getByAlias(configName, iface).name
+			ifaceName := masterOffsetIface.getByClockIdentifier(configName, iface).name
 			if iface != clockRealTime && p.name == ts2phcProcessName {
 				eventSource := p.ifaces.GetEventSource(ifaceName)
 				if eventSource == event.GNSS {
@@ -1384,7 +1384,7 @@ func (p *ptpProcess) ProcessTs2PhcEvents(ptpOffset float64, source string, iface
 
 	} else {
 		if iface != "" && iface != clockRealTime {
-			iface = utils.GetAlias(iface)
+			iface = utils.GetClockIdentifier(iface)
 		}
 		if p.c != nil {
 			return // no metrics when socket is used

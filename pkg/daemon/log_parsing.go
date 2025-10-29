@@ -83,7 +83,7 @@ func processParsedMetrics(process *ptpProcess, ptpMetrics *parser.Metrics) {
 	// Convert interface from possible clock id
 	iface := process.ifaces.GetPhcID2IFace(ptpMetrics.Iface)
 	if iface != clockRealTime {
-		iface = utils.GetAlias(iface)
+		iface = utils.GetClockIdentifier(iface)
 	}
 
 	// Update PTP metrics using the parsed data
@@ -173,9 +173,9 @@ func processParsedEvent(process *ptpProcess, ptpEvent *parser.PTPEvent) {
 			sourceIsPtp4l := masterOffsetSource.get(configName) == ptp4lProcessName
 			if isFaulty && sourceIsPtp4l {
 				// Set fault metrics and clear slave & master offset interfaces
-				updatePTPMetrics(master, process.name, masterOffsetIface.get(configName).alias, faultyOffset, faultyOffset, 0, 0)
+				updatePTPMetrics(master, process.name, masterOffsetIface.get(configName).clockIdentifier, faultyOffset, faultyOffset, 0, 0)
 				updatePTPMetrics(phc, phc2sysProcessName, clockRealTime, faultyOffset, faultyOffset, 0, 0)
-				updateClockStateMetrics(process.name, masterOffsetIface.get(configName).alias, FREERUN)
+				updateClockStateMetrics(process.name, masterOffsetIface.get(configName).clockIdentifier, FREERUN)
 				masterOffsetIface.set(configName, "")
 				slaveIface.set(configName, "")
 			}

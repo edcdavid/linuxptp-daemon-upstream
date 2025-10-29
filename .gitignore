@@ -17,3 +17,5 @@ bin/
 *.out
 .idea/
 .vscode/
+.cursor/
+vendor/

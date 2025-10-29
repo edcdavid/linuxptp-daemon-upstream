@@ -494,7 +494,7 @@ func (e *EventHandler) convergeConfig(event EventChannel) EventChannel {
 					continue
 				}
 				for _, dp := range item.Details {
-					if utils.GetAlias(dp.IFace) == utils.GetAlias(iface) {
+					if utils.GetClockIdentifier(dp.IFace) == utils.GetClockIdentifier(iface) {
 						// We want to process ptp4l having a separate config with ts2phc and dpll events having ts2phc config
 						// so in the rare occurrence of ptp4l state change we modify the event.CfgName
 						event.CfgName = cfg

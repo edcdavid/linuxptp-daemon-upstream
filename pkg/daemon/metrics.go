@@ -76,8 +76,8 @@ type masterOffsetInterface struct { // by slave iface with masked index
 	iface map[string]ptpInterface
 }
 type ptpInterface struct {
-	name  string
-	alias string
+	name            string
+	clockIdentifier string
 }
 type slaveInterface struct { // current slave iface name
 	sync.RWMutex
@@ -309,9 +309,9 @@ func extractMetrics(messageTag string, processName string, ifaces config.IFaces,
 					if slaveIface.isFaulty(configName, ifaces[portId-1].Name) &&
 						masterOffsetSource.get(configName) == ptp4lProcessName {
 						if updateMetrics {
-							updatePTPMetrics(master, processName, masterOffsetIface.get(configName).alias, faultyOffset, faultyOffset, 0, 0)
+							updatePTPMetrics(master, processName, masterOffsetIface.get(configName).clockIdentifier, faultyOffset, faultyOffset, 0, 0)
 							updatePTPMetrics(phc, phc2sysProcessName, clockRealTime, faultyOffset, faultyOffset, 0, 0)
-							updateClockStateMetrics(processName, masterOffsetIface.get(configName).alias, FREERUN)
+							updateClockStateMetrics(processName, masterOffsetIface.get(configName).clockIdentifier, FREERUN)
 						}
 						masterOffsetIface.set(configName, "")
 						slaveIface.set(configName, "")
@@ -361,7 +361,7 @@ func extractSummaryMetrics(configName, processName, output string) (iface string
 		//  0             1     2
 		//ptp4l.0.config rms   53 max   74 freq -16642 +/-  40 delay  1089 +/-  20
 		copy(fields[2:], fields[1:])                        // Shifting elements
-		fields[1] = masterOffsetIface.get(configName).alias // Copying/inserting the value
+		fields[1] = masterOffsetIface.get(configName).clockIdentifier // Copying/inserting the value
 		//  0             0       1   2
 		//ptp4l.0.config master rms   53 max   74 freq -16642 +/-  40 delay  1089 +/-  20
 	} else if fields[1] != "CLOCK_REALTIME" {
@@ -465,7 +465,7 @@ func extractRegularMetrics(configName, processName, output string, ifaces config
 	}
 
 	if iface == master {
-		iface = masterOffsetIface.get(configName).alias
+		iface = masterOffsetIface.get(configName).clockIdentifier
 	}
 
 	ptpOffset, e := strconv.ParseFloat(fields[3], 64)
@@ -599,15 +599,15 @@ func deleteMetrics(ifaces config.IFaces, haProfiles map[string][]string, process
 	}
 	for _, iface := range masterOffsetIface.iface {
 		ClockState.Delete(prometheus.Labels{
-			"process": process, "node": NodeName, "iface": iface.alias})
+			"process": process, "node": NodeName, "iface": iface.clockIdentifier})
 		Delay.Delete(prometheus.Labels{
-			"from": master, "process": process, "node": NodeName, "iface": iface.alias})
+			"from": master, "process": process, "node": NodeName, "iface": iface.clockIdentifier})
 		FrequencyAdjustment.Delete(prometheus.Labels{
-			"from": master, "process": process, "node": NodeName, "iface": iface.alias})
+			"from": master, "process": process, "node": NodeName, "iface": iface.clockIdentifier})
 		MaxOffset.Delete(prometheus.Labels{
-			"from": master, "process": process, "node": NodeName, "iface": iface.alias})
+			"from": master, "process": process, "node": NodeName, "iface": iface.clockIdentifier})
 		Offset.Delete(prometheus.Labels{
-			"from": master, "process": process, "node": NodeName, "iface": iface.alias})
+			"from": master, "process": process, "node": NodeName, "iface": iface.clockIdentifier})
 	}
 }
 
@@ -741,29 +741,29 @@ func (m *masterOffsetInterface) get(configName string) ptpInterface {
 		return s
 	}
 	return ptpInterface{
-		name:  "",
-		alias: "",
+		name:            "",
+		clockIdentifier: "",
 	}
 }
-func (m *masterOffsetInterface) getByAlias(configName string, alias string) ptpInterface {
+func (m *masterOffsetInterface) getByClockIdentifier(configName string, clockIdentifier string) ptpInterface {
 	m.RLock()
 	defer m.RUnlock()
 	if s, found := m.iface[configName]; found {
-		if s.alias == alias {
+		if s.clockIdentifier == clockIdentifier {
 			return s
 		}
 	}
 	return ptpInterface{
-		name:  alias,
-		alias: alias,
+		name:            clockIdentifier,
+		clockIdentifier: clockIdentifier,
 	}
 }
 
-func (m *masterOffsetInterface) getAliasByName(configName string, name string) ptpInterface {
+func (m *masterOffsetInterface) getClockIdentifierByName(configName string, name string) ptpInterface {
 	if name == clockRealTime || name == master {
 		return ptpInterface{
-			name:  name,
-			alias: name,
+			name:            name,
+			clockIdentifier: name,
 		}
 	}
 	m.RLock()
@@ -774,8 +774,8 @@ func (m *masterOffsetInterface) getAliasByName(configName string, name string) p
 		}
 	}
 	return ptpInterface{
-		name:  name,
-		alias: name,
+		name:            name,
+		clockIdentifier: name,
 	}
 }
 
@@ -784,7 +784,7 @@ func (m *masterOffsetInterface) set(configName string, value string) {
 	defer m.Unlock()
 	m.iface[configName] = ptpInterface{
 		name:  value,
-		alias: utils.GetAlias(value),
+		clockIdentifier: utils.GetClockIdentifier(value),
 	}
 }
 

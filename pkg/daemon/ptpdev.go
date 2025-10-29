@@ -9,6 +9,7 @@ import (
 	ptpclient "github.com/k8snetworkplumbingwg/ptp-operator/pkg/client/clientset/versioned"
 
 	ptpnetwork "github.com/k8snetworkplumbingwg/linuxptp-daemon/pkg/network"
+	ptputils "github.com/k8snetworkplumbingwg/linuxptp-daemon/pkg/utils"
 )
 
 func populateNodePTPDevices(nodePTPDev *ptpv1.NodePtpDevice, hwconfigs *[]ptpv1.HwConfig) (*ptpv1.NodePtpDevice, error) {
@@ -29,7 +30,19 @@ func GetDevStatusUpdate(nodePTPDev *ptpv1.NodePtpDevice) (*ptpv1.NodePtpDevice, 
 
 	newDevices := make([]ptpv1.PtpDevice, 0)
 	for _, hostDev := range hostDevs {
-		newDevices = append(newDevices, ptpv1.PtpDevice{Name: hostDev, Profile: ""})
+		// Get the PHC ID for this device
+		phcId := ptpnetwork.GetPhcId(hostDev)
+		if phcId == "" {
+			glog.Warningf("failed to get PHC ID for device %s, will use interface name", hostDev)
+		} else {
+			glog.Infof("device %s has PHC ID %s", hostDev, phcId)
+		}
+		
+		newDevices = append(newDevices, ptpv1.PtpDevice{
+			Name:    hostDev,
+			Profile: "",
+			PhcId:   phcId,
+		})
 	}
 	nodePTPDev.Status.Devices = newDevices
 	return nodePTPDev, nil
@@ -64,9 +77,14 @@ func runDeviceStatusUpdate(ptpClient *ptpclient.Clientset, nodeName string, hwco
 	}
 
 	// Update NodePtpDevice CR
-	_, err = ptpClient.PtpV1().NodePtpDevices(PtpNamespace).UpdateStatus(context.TODO(), ptpDev, metav1.UpdateOptions{})
+	updatedPtpDev, err := ptpClient.PtpV1().NodePtpDevices(PtpNamespace).UpdateStatus(context.TODO(), ptpDev, metav1.UpdateOptions{})
 	if err != nil {
 		glog.Errorf("failed to update Node PTP device CR: %v", err)
+	} else {
+		// Update the PHC ID cache from the newly updated NodePtpDevice CR
+		// This makes the CR the source of truth for PHC ID mappings
+		ptputils.UpdatePhcCacheFromNodePtpDevice(updatedPtpDev)
+		glog.Info("updated PHC ID cache from NodePtpDevice CR")
 	}
 }
 

@@ -11,10 +11,10 @@ import (
 	"github.com/k8snetworkplumbingwg/linuxptp-daemon/pkg/utils"
 )
 
-// PtpInterface represents a PTP interface with its name and alias
+// PtpInterface represents a PTP interface with its name and clock identifier
 type PtpInterface struct {
-	Name  string
-	Alias string
+	Name            string
+	ClockIdentifier string
 }
 
 type masterOffsetInterface struct { // by slave iface with masked index
@@ -94,8 +94,8 @@ func (s *SharedState) DeleteSlaveIface(configName string) {
 func (s *SharedState) GetMasterInterface(configName string) PtpInterface {
 	if s.masterOffsetIface == nil {
 		return PtpInterface{
-			Name:  "",
-			Alias: "",
+		Name:            "",
+		ClockIdentifier: "",
 		} // avoid panic
 	}
 	s.masterOffsetIface.mu.RLock()
@@ -104,34 +104,34 @@ func (s *SharedState) GetMasterInterface(configName string) PtpInterface {
 		return mIface
 	}
 	return PtpInterface{
-		Name:  "",
-		Alias: "",
+		Name:            "",
+		ClockIdentifier: "",
 	}
 }
 
-// GetMasterInterfaceByAlias returns the master interface for the given config name and alias.
+// GetMasterInterfaceByClockIdentifier returns the master interface for the given config name and clock identifier.
 // Returns an error if the interface is not found.
-func (s *SharedState) GetMasterInterfaceByAlias(configName string, alias string) (PtpInterface, error) {
+func (s *SharedState) GetMasterInterfaceByClockIdentifier(configName string, clockIdentifier string) (PtpInterface, error) {
 	if s.masterOffsetIface == nil {
 		return PtpInterface{}, fmt.Errorf("master interface is nil")
 	}
 	s.masterOffsetIface.mu.RLock()
 	defer s.masterOffsetIface.mu.RUnlock()
 	if mIface, found := s.masterOffsetIface.iface[configName]; found {
-		if mIface.Alias == alias {
+		if mIface.ClockIdentifier == clockIdentifier {
 			return mIface, nil
 		}
 	}
-	return PtpInterface{}, fmt.Errorf("master interface not found for config %s and alias %s", configName, alias)
+	return PtpInterface{}, fmt.Errorf("master interface not found for config %s and clock identifier %s", configName, clockIdentifier)
 }
 
-// GetAliasByName returns the interface alias for the given config name and interface name.
+// GetClockIdentifierByName returns the clock identifier for the given config name and interface name.
 // Returns an error if the interface is not found.
-func (s *SharedState) GetAliasByName(configName string, name string) (PtpInterface, error) {
+func (s *SharedState) GetClockIdentifierByName(configName string, name string) (PtpInterface, error) {
 	if name == "CLOCK_REALTIME" || name == "master" {
 		return PtpInterface{
-			Name:  name,
-			Alias: name,
+			Name:            name,
+			ClockIdentifier: name,
 		}, nil
 	}
 	if s.masterOffsetIface == nil {
@@ -159,8 +159,8 @@ func (s *SharedState) SetMasterOffsetIface(configName string, value string) erro
 	s.masterOffsetIface.mu.Lock()
 	defer s.masterOffsetIface.mu.Unlock()
 	s.masterOffsetIface.iface[configName] = PtpInterface{
-		Name:  value,
-		Alias: utils.GetAlias(value),
+		Name:            value,
+		ClockIdentifier: utils.GetClockIdentifier(value),
 	}
 	return nil
 }
