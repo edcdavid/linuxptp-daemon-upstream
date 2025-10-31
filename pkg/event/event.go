@@ -903,7 +903,7 @@ func (e *EventHandler) UpdateClockStateMetrics(state PTPState, process, iFace st
 		return
 	}
 	labels := prometheus.Labels{
-		"process": process, "node": e.nodeName, "iface": iFace}
+		"process": process, "node": e.nodeName, "clkid": iFace}
 	if state == PTP_LOCKED {
 		e.clockMetric.With(labels).Set(1)
 	} else if state == PTP_FREERUN {
@@ -942,7 +942,7 @@ func (e *EventHandler) updateMetrics(cfgName string, process EventSource, proces
 					d.Metrics[dataType] = m
 				}
 				pLabels := map[string]string{"from": pName, "node": e.nodeName,
-					"process": string(process), "iface": iface}
+					"process": string(process), "clkid": iface}
 				d.Metrics[dataType].GaugeMetric.With(pLabels).Set(dataValue)
 			} else {
 				metric := DataMetric{
@@ -953,12 +953,12 @@ func (e *EventHandler) updateMetrics(cfgName string, process EventSource, proces
 							Subsystem: PTPSubsystem,
 							Name:      getMetricName(dataType),
 							Help:      valueTypeHelpTxt[dataType],
-						}, []string{"from", "node", "process", "iface"}),
+						}, []string{"from", "node", "process", "clkid"}),
 					CounterMetric: nil,
 					Name:          string(dataType),
 					ValueType:     prometheus.GaugeValue,
 					Labels: map[string]string{"from": string(process), "node": e.nodeName,
-						"process": string(process), "iface": iface},
+						"process": string(process), "clkid": iface},
 					Value: dataValue,
 				}
 

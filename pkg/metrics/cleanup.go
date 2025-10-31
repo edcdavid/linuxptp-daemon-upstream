@@ -21,7 +21,7 @@ func DeleteSynceMetrics(process, configName string, relations *synce.Relations) 
 			SynceClockQL.Delete(prometheus.Labels{
 				"process": process, "node": NodeName, "profile": configName,
 				"iface": iface, "device": device.Name, "network_option": strconv.Itoa(device.NetworkOption)})
-			ClockState.Delete(prometheus.Labels{"process": process, "node": NodeName, "iface": iface})
+			ClockState.Delete(prometheus.Labels{"process": process, "node": NodeName, "clkid": iface})
 		}
 	}
 }

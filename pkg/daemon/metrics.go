@@ -101,7 +101,7 @@ var (
 			Subsystem: PTPSubsystem,
 			Name:      "offset_ns",
 			Help:      "",
-		}, []string{"from", "process", "node", "iface"})
+		}, []string{"from", "process", "node", "clkid"})
 
 	MaxOffset = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -109,7 +109,7 @@ var (
 			Subsystem: PTPSubsystem,
 			Name:      "max_offset_ns",
 			Help:      "",
-		}, []string{"from", "process", "node", "iface"})
+		}, []string{"from", "process", "node", "clkid"})
 
 	FrequencyAdjustment = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -117,7 +117,7 @@ var (
 			Subsystem: PTPSubsystem,
 			Name:      "frequency_adjustment_ns",
 			Help:      "",
-		}, []string{"from", "process", "node", "iface"})
+		}, []string{"from", "process", "node", "clkid"})
 
 	Delay = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -125,7 +125,7 @@ var (
 			Subsystem: PTPSubsystem,
 			Name:      "delay_ns",
 			Help:      "",
-		}, []string{"from", "process", "node", "iface"})
+		}, []string{"from", "process", "node", "clkid"})
 
 	// ClockState metrics to show current clock state
 	ClockState = prometheus.NewGaugeVec(
@@ -134,7 +134,7 @@ var (
 			Subsystem: PTPSubsystem,
 			Name:      "clock_state",
 			Help:      "0 = FREERUN, 1 = LOCKED, 2 = HOLDOVER",
-		}, []string{"process", "node", "iface"})
+		}, []string{"process", "node", "clkid"})
 
 	// ClockClassMetrics metrics to show current clock class
 	ClockClassMetrics = prometheus.NewGaugeVec(
@@ -152,7 +152,7 @@ var (
 			Subsystem: PTPSubsystem,
 			Name:      "interface_role",
 			Help:      "0 = PASSIVE, 1 = SLAVE, 2 = MASTER, 3 = FAULTY, 4 = UNKNOWN, 5 = LISTENING",
-		}, []string{"process", "node", "iface"})
+		}, []string{"process", "node", "clkid"})
 
 	ProcessStatus = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -244,16 +244,16 @@ func InitializeOffsetMaps() {
 // updatePTPMetrics ...
 func updatePTPMetrics(from, process, iface string, ptpOffset, maxPtpOffset, frequencyAdjustment, delay float64) {
 	Offset.With(prometheus.Labels{"from": from,
-		"process": process, "node": NodeName, "iface": iface}).Set(ptpOffset)
+		"process": process, "node": NodeName, "clkid": iface}).Set(ptpOffset)
 
 	MaxOffset.With(prometheus.Labels{"from": from,
-		"process": process, "node": NodeName, "iface": iface}).Set(maxPtpOffset)
+		"process": process, "node": NodeName, "clkid": iface}).Set(maxPtpOffset)
 
 	FrequencyAdjustment.With(prometheus.Labels{"from": from,
-		"process": process, "node": NodeName, "iface": iface}).Set(frequencyAdjustment)
+		"process": process, "node": NodeName, "clkid": iface}).Set(frequencyAdjustment)
 
 	Delay.With(prometheus.Labels{"from": from,
-		"process": process, "node": NodeName, "iface": iface}).Set(delay)
+		"process": process, "node": NodeName, "clkid": iface}).Set(delay)
 }
 
 // extractMetrics ...
@@ -521,16 +521,16 @@ func extractRegularMetrics(configName, processName, output string, ifaces config
 func updateClockStateMetrics(process, iface string, state string) {
 	if state == LOCKED {
 		ClockState.With(prometheus.Labels{
-			"process": process, "node": NodeName, "iface": iface}).Set(1)
+			"process": process, "node": NodeName, "clkid": iface}).Set(1)
 	} else {
 		ClockState.With(prometheus.Labels{
-			"process": process, "node": NodeName, "iface": iface}).Set(0)
+			"process": process, "node": NodeName, "clkid": iface}).Set(0)
 	}
 }
 
 func UpdateInterfaceRoleMetrics(process string, iface string, role ptpPortRole) {
 	InterfaceRole.With(prometheus.Labels{
-		"process": process, "node": NodeName, "iface": iface}).Set(float64(role))
+		"process": process, "node": NodeName, "clkid": iface}).Set(float64(role))
 }
 
 // UpdateClockClassMetrics ... update clock class metrics
@@ -581,7 +581,7 @@ func deleteSyncEMetrics(process, configName string, relations *synce.Relations) 
 				"process": process, "node": NodeName, "profile": configName, "iface": iface, "device": device.Name, "network_option": strconv.Itoa(device.NetworkOption)})
 
 			ClockState.Delete(prometheus.Labels{
-				"process": process, "node": NodeName, "iface": iface})
+				"process": process, "node": NodeName, "clkid": iface})
 		}
 	}
 }
@@ -595,33 +595,33 @@ func deleteMetrics(ifaces config.IFaces, haProfiles map[string][]string, process
 	deleteProcessStatusMetrics(config, process)
 	for _, iface := range ifaces {
 		InterfaceRole.Delete(prometheus.Labels{
-			"process": ptp4lProcessName, "node": NodeName, "iface": iface.Name})
+			"process": ptp4lProcessName, "node": NodeName, "clkid": iface.Name})
 	}
 	for _, iface := range masterOffsetIface.iface {
 		ClockState.Delete(prometheus.Labels{
-			"process": process, "node": NodeName, "iface": iface.clockIdentifier})
+			"process": process, "node": NodeName, "clkid": iface.clockIdentifier})
 		Delay.Delete(prometheus.Labels{
-			"from": master, "process": process, "node": NodeName, "iface": iface.clockIdentifier})
+			"from": master, "process": process, "node": NodeName, "clkid": iface.clockIdentifier})
 		FrequencyAdjustment.Delete(prometheus.Labels{
-			"from": master, "process": process, "node": NodeName, "iface": iface.clockIdentifier})
+			"from": master, "process": process, "node": NodeName, "clkid": iface.clockIdentifier})
 		MaxOffset.Delete(prometheus.Labels{
-			"from": master, "process": process, "node": NodeName, "iface": iface.clockIdentifier})
+			"from": master, "process": process, "node": NodeName, "clkid": iface.clockIdentifier})
 		Offset.Delete(prometheus.Labels{
-			"from": master, "process": process, "node": NodeName, "iface": iface.clockIdentifier})
+			"from": master, "process": process, "node": NodeName, "clkid": iface.clockIdentifier})
 	}
 }
 
 func deleteOsClockStateMetrics(profiles map[string][]string) {
 	ClockState.Delete(prometheus.Labels{
-		"process": phc2sysProcessName, "node": NodeName, "iface": clockRealTime})
+		"process": phc2sysProcessName, "node": NodeName, "clkid": clockRealTime})
 	Delay.Delete(prometheus.Labels{
-		"from": phc, "process": phc2sysProcessName, "node": NodeName, "iface": clockRealTime})
+		"from": phc, "process": phc2sysProcessName, "node": NodeName, "clkid": clockRealTime})
 	FrequencyAdjustment.Delete(prometheus.Labels{
-		"from": phc, "process": phc2sysProcessName, "node": NodeName, "iface": clockRealTime})
+		"from": phc, "process": phc2sysProcessName, "node": NodeName, "clkid": clockRealTime})
 	MaxOffset.Delete(prometheus.Labels{
-		"from": phc, "process": phc2sysProcessName, "node": NodeName, "iface": clockRealTime})
+		"from": phc, "process": phc2sysProcessName, "node": NodeName, "clkid": clockRealTime})
 	Offset.Delete(prometheus.Labels{
-		"from": phc, "process": phc2sysProcessName, "node": NodeName, "iface": clockRealTime})
+		"from": phc, "process": phc2sysProcessName, "node": NodeName, "clkid": clockRealTime})
 	for profile := range profiles {
 		PTPHAMetrics.Delete(prometheus.Labels{
 			"process": phc2sysProcessName, "node": NodeName, "profile": profile})

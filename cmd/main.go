@@ -128,6 +128,16 @@ func main() {
 	hwconfigs := []ptpv1.HwConfig{}
 	refreshNodePtpDevice := true
 	closeProcessManager := make(chan bool)
+	
+	// Initialize PHC cache from NodePtpDevice CR at startup
+	// This ensures GetClockIdentifier() works before the first device update
+	if ptpDev, err := ptpClient.PtpV1().NodePtpDevices(daemon.PtpNamespace).Get(context.TODO(), nodeName, metav1.GetOptions{}); err == nil {
+		daemon.InitializePhcCacheFromNodePtpDevice(ptpDev)
+		glog.Info("initialized PHC cache from NodePtpDevice CR at startup")
+	} else {
+		glog.Warningf("failed to load NodePtpDevice CR at startup (will retry later): %v", err)
+	}
+	
 	lm, err := leap.New(kubeClient, daemon.PtpNamespace)
 	if err != nil {
 		glog.Error("failed to initialize Leap manager, ", err)
