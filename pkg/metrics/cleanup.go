@@ -35,17 +35,17 @@ func DeleteMetrics(ifaces config.IFaces, haProfiles map[string][]string, process
 
 	DeleteProcessStatusMetrics(config, process)
 	for _, iface := range ifaces {
-		InterfaceRole.Delete(prometheus.Labels{"process": "ptp4l", "node": NodeName, "iface": iface.Name})
+		InterfaceRole.Delete(prometheus.Labels{"process": "ptp4l", "node": NodeName, "clkid": iface.Name})
 	}
 	// You may also delete Offset/Freq/Delay/MaxOffset for known ifaces as needed
 }
 
 func deleteOsClockStateMetrics(profiles map[string][]string) {
-	ClockState.Delete(prometheus.Labels{"process": "phc2sys", "node": NodeName, "iface": "CLOCK_REALTIME"})
-	Delay.Delete(prometheus.Labels{"from": "phc", "process": "phc2sys", "node": NodeName, "iface": "CLOCK_REALTIME"})
-	FrequencyAdjustment.Delete(prometheus.Labels{"from": "phc", "process": "phc2sys", "node": NodeName, "iface": "CLOCK_REALTIME"})
-	MaxOffset.Delete(prometheus.Labels{"from": "phc", "process": "phc2sys", "node": NodeName, "iface": "CLOCK_REALTIME"})
-	Offset.Delete(prometheus.Labels{"from": "phc", "process": "phc2sys", "node": NodeName, "iface": "CLOCK_REALTIME"})
+	ClockState.Delete(prometheus.Labels{"process": "phc2sys", "node": NodeName, "clkid": "CLOCK_REALTIME"})
+	Delay.Delete(prometheus.Labels{"from": "phc", "process": "phc2sys", "node": NodeName, "clkid": "CLOCK_REALTIME"})
+	FrequencyAdjustment.Delete(prometheus.Labels{"from": "phc", "process": "phc2sys", "node": NodeName, "clkid": "CLOCK_REALTIME"})
+	MaxOffset.Delete(prometheus.Labels{"from": "phc", "process": "phc2sys", "node": NodeName, "clkid": "CLOCK_REALTIME"})
+	Offset.Delete(prometheus.Labels{"from": "phc", "process": "phc2sys", "node": NodeName, "clkid": "CLOCK_REALTIME"})
 
 	for profile := range profiles {
 		PTPHAMetrics.Delete(prometheus.Labels{"process": "phc2sys", "node": NodeName, "profile": profile})

@@ -24,7 +24,7 @@ var (
 			Subsystem: PTPSubsystem,
 			Name:      "offset_ns",
 			Help:      "",
-		}, []string{"from", "process", "node", "iface"})
+		}, []string{"from", "process", "node", "clkid"})
 
 	// MaxOffset ...
 	MaxOffset = prometheus.NewGaugeVec(
@@ -33,7 +33,7 @@ var (
 			Subsystem: PTPSubsystem,
 			Name:      "max_offset_ns",
 			Help:      "",
-		}, []string{"from", "process", "node", "iface"})
+		}, []string{"from", "process", "node", "clkid"})
 
 	// FrequencyAdjustment ...
 	FrequencyAdjustment = prometheus.NewGaugeVec(
@@ -42,7 +42,7 @@ var (
 			Subsystem: PTPSubsystem,
 			Name:      "frequency_adjustment_ns",
 			Help:      "",
-		}, []string{"from", "process", "node", "iface"})
+		}, []string{"from", "process", "node", "clkid"})
 
 	// Delay ...
 	Delay = prometheus.NewGaugeVec(
@@ -51,7 +51,7 @@ var (
 			Subsystem: PTPSubsystem,
 			Name:      "delay_ns",
 			Help:      "",
-		}, []string{"from", "process", "node", "iface"})
+		}, []string{"from", "process", "node", "clkid"})
 
 	// ClockState metrics to show current clock state
 	ClockState = prometheus.NewGaugeVec(
@@ -60,7 +60,7 @@ var (
 			Subsystem: PTPSubsystem,
 			Name:      "clock_state",
 			Help:      "0 = FREERUN, 1 = LOCKED, 2 = HOLDOVER",
-		}, []string{"process", "node", "iface"})
+		}, []string{"process", "node", "clkid"})
 
 	// ClockClassMetrics metrics to show current clock class
 	ClockClassMetrics = prometheus.NewGaugeVec(
@@ -78,7 +78,7 @@ var (
 			Subsystem: PTPSubsystem,
 			Name:      "interface_role",
 			Help:      "0 = PASSIVE, 1 = SLAVE, 2 = MASTER, 3 = FAULTY, 4 = UNKNOWN, 5 = LISTENING",
-		}, []string{"process", "node", "iface"})
+		}, []string{"process", "node", "clkid"})
 
 	// ProcessStatus ...
 	ProcessStatus = prometheus.NewGaugeVec(

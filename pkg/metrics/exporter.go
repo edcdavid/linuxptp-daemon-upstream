@@ -15,12 +15,12 @@ func UpdateClockStateMetrics(process, iface, state string) {
 	if state == "LOCKED" {
 		val = 1.0
 	}
-	ClockState.With(prometheus.Labels{"process": process, "node": NodeName, "iface": iface}).Set(val)
+	ClockState.With(prometheus.Labels{"process": process, "node": NodeName, "clkid": iface}).Set(val)
 }
 
 // UpdateInterfaceRoleMetrics ...
 func UpdateInterfaceRoleMetrics(process, iface string, role int) {
-	InterfaceRole.With(prometheus.Labels{"process": process, "node": NodeName, "iface": iface}).Set(float64(role))
+	InterfaceRole.With(prometheus.Labels{"process": process, "node": NodeName, "clkid": iface}).Set(float64(role))
 }
 
 // UpdateClockClassMetrics ...
@@ -67,7 +67,7 @@ func UpdateSynceQLMetrics(process, cfgName, iface string, networkOption int, dev
 // UpdatePTPMetrics updatePTPMetrics ...
 func UpdatePTPMetrics(from, process, iface string, ptpOffset, maxPtpOffset, frequencyAdjustment, delay float64) {
 	Offset.With(prometheus.Labels{"from": from,
-		"process": process, "node": NodeName, "iface": iface}).Set(ptpOffset)
+		"process": process, "node": NodeName, "clkid": iface}).Set(ptpOffset)
 
 	MaxOffset.With(prometheus.Labels{"from": from,
 		"process": process, "node": NodeName, "iface": iface}).Set(maxPtpOffset)

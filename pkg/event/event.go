@@ -683,13 +683,13 @@ connect:
 			logDataValues := ""
 			if event.ProcessName == SYNCE {
 				// Update the metrics
-				logDataValues = event.GetLogData()
-				if event.WriteToLog && logDataValues != "" {
-					logOut = append(logOut, logDataValues)
-				}
-				if !e.stdoutToSocket {
-					e.UpdateClockStateMetrics(event.State, string(event.ProcessName), event.IFace)
-				}
+			logDataValues = event.GetLogData()
+			if event.WriteToLog && logDataValues != "" {
+				logOut = append(logOut, logDataValues)
+			}
+			if !e.stdoutToSocket {
+				e.UpdateClockStateMetrics(event.State, string(event.ProcessName), utils.GetClockIdentifier(event.IFace))
+			}
 			} else {
 
 				// Update the in MemData
