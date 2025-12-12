@@ -110,7 +110,6 @@ func RunPMCExpSetGMSettings(configFileName string, g protocol.GrandmasterSetting
 			glog.Errorf("RunPMCExpSetGMSettings: failed to spawn pmc: %v", err)
 			continue
 		}
-		defer utils.CloseExpect(exp, r)
 
 		if err = exp.Send(cmdStr + "\n"); err != nil {
 			glog.Errorf("RunPMCExpSetGMSettings: failed to send command: %v", err)
@@ -124,7 +123,11 @@ func RunPMCExpSetGMSettings(configFileName string, g protocol.GrandmasterSetting
 			continue
 		}
 		glog.Infof("RunPMCExpSetGMSettings: pmc result: %s", result)
+		utils.CloseExpect(exp, r)
 		return nil
+	}
+	if exp != nil {
+		utils.CloseExpect(exp, r)
 	}
 	return err
 }
