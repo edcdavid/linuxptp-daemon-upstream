@@ -850,6 +850,12 @@ func (dn *Daemon) applyNodePtpProfile(runID int, nodeProfile *ptpv1.PtpProfile) 
 				pmcClockType, clockTypeFound := (*nodeProfile).PtpSettings["clockType"]
 				if !clockTypeFound {
 					pmcClockType = string(clockType)
+					// Check if ptp4lOpts contains -s flag (slave-only mode)
+					// This overrides the clock type inferred from config file
+					if nodeProfile.Ptp4lOpts != nil && (strings.Contains(*nodeProfile.Ptp4lOpts, " -s") || strings.HasPrefix(*nodeProfile.Ptp4lOpts, "-s")) {
+						pmcClockType = string(event.OC)
+						glog.Infof("Detected -s flag in ptp4lOpts, setting PMC clock type to OC for profile %s", *nodeProfile.Name)
+					}
 				}
 				pmcProcess := NewPMCProcess(runID, dn.processManager.ptpEventHandler, pmcClockType)
 				pmcProcess.CmdInit()
