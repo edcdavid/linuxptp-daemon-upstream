@@ -29,7 +29,8 @@ func TestConvergeConfig(t *testing.T) {
 		}
 		mockEventHandler := &MockEventHandler{
 			e: EventHandler{
-				data: mockData.Data,
+				data:                  mockData.Data,
+				convergedPtp4lConfigs: map[string]map[string]bool{},
 			},
 
 			Event: EventChannel{
