@@ -1296,6 +1296,15 @@ func (e *EventHandler) addEvent(event EventChannel) *DataDetails {
 
 // UpdateClockClass ... update clock class
 func (e *EventHandler) UpdateClockClass(clk ClockClassRequest) {
+	// For non-GM clock types (BC/OC), updateClockClass only reads the local
+	// GRANDMASTER_SETTINGS_NP without modifying it. The local value (e.g. 255
+	// for a slave-only port) does not reflect the upstream GM clock class.
+	// AnnounceClockClass already emitted the correct value from PARENT_DATA_SET,
+	// so skip the emission here for non-GM types to avoid overwriting it.
+	if clk.clockType != GM {
+		glog.Infof("UpdateClockClass skipping for non-GM clockType=%v cfg=%s (already announced via AnnounceClockClass)", clk.clockType, clk.cfgName)
+		return
+	}
 	classErr, clockClass, clockAccuracy := e.updateClockClass(clk.cfgName, clk.clockClass, clk.clockType, clk.clockAccuracy,
 		PMCGMGetter, PMCGMSetter)
 	glog.Infof("received %s,%v,%s,%v", clk.cfgName, clk.clockClass, clk.clockType, clk.clockAccuracy)
