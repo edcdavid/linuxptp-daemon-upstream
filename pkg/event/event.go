@@ -638,6 +638,14 @@ func (e *EventHandler) setClockClassLocked(clockClass fbprotocol.ClockClass, clo
 	e.clockAccuracy = clockAcc
 }
 
+// updateClockClassMetric sets the Prometheus clock class gauge for the given config.
+func (e *EventHandler) updateClockClassMetric(cfgName string, clockClass fbprotocol.ClockClass) {
+	if !e.stdoutToSocket && e.clockClassMetric != nil {
+		e.clockClassMetric.With(prometheus.Labels{
+			"process": PTP4lProcessName, "config": cfgName, "node": e.nodeName}).Set(float64(clockClass))
+	}
+}
+
 // emitClockClass writes the clock class to the socket and updates the metric.
 // Must NOT be called while holding e.Lock().
 func (e *EventHandler) emitClockClass(clockClass fbprotocol.ClockClass, cfgName string) {
@@ -645,10 +653,7 @@ func (e *EventHandler) emitClockClass(clockClass fbprotocol.ClockClass, cfgName 
 		logMsg := utils.GetClockClassLogMessage(PTP4lProcessName, cfgName, clockClass)
 		e.writeLogToSocket(logMsg)
 	}
-	if !e.stdoutToSocket && e.clockClassMetric != nil {
-		e.clockClassMetric.With(prometheus.Labels{
-			"process": PTP4lProcessName, "config": cfgName, "node": e.nodeName}).Set(float64(clockClass))
-	}
+	e.updateClockClassMetric(cfgName, clockClass)
 }
 
 // reconnectEventSocket closes the current connection and dials a new one using
@@ -806,6 +811,7 @@ func (e *EventHandler) ProcessEvents() {
 							// Stop double emmit
 							cfgName = ""
 						}
+						e.updateClockClassMetric(clkCfgName, clockClass)
 						logMsg := utils.GetClockClassLogMessage(PTP4lProcessName, clkCfgName, clockClass)
 						if !e.writeLogToSocket(logMsg) {
 							break
@@ -820,6 +826,7 @@ func (e *EventHandler) ProcessEvents() {
 						e.Lock()
 						currentClockClass := e.clockClass
 						e.Unlock()
+						e.updateClockClassMetric(cfgName, currentClockClass)
 						logMsg := utils.GetClockClassLogMessage(PTP4lProcessName, cfgName, currentClockClass)
 						e.writeLogToSocket(logMsg)
 					}
