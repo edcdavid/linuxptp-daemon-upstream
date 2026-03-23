@@ -139,6 +139,10 @@ func (e *EventHandler) updateBCState(event EventChannel) (clockSyncState, bool) 
 	case PTP_NOTSET, PTP_FREERUN:
 		if !e.isSourceLostBC(cfgName) && e.inSyncCondition(cfgName) {
 			e.clkSyncState[cfgName].state = PTP_LOCKED
+			if gmClass := e.LeadingClockData.upstreamParentDataSet.GrandmasterClockClass; gmClass != 0 && !isTTSC {
+				e.clkSyncState[cfgName].clockClass = fbprotocol.ClockClass(gmClass)
+				e.clkSyncState[cfgName].clockAccuracy = fbprotocol.ClockAccuracy(e.LeadingClockData.upstreamParentDataSet.GrandmasterClockAccuracy)
+			}
 			glog.Info("BC FSM: FREERUN to LOCKED")
 			e.LeadingClockData.lastInSpec = true
 			updateDownstreamData = true
@@ -174,6 +178,10 @@ func (e *EventHandler) updateBCState(event EventChannel) (clockSyncState, bool) 
 	case PTP_HOLDOVER:
 		if e.inSyncCondition(cfgName) && !e.isSourceLostBC(cfgName) {
 			e.clkSyncState[cfgName].state = PTP_LOCKED
+			if gmClass := e.LeadingClockData.upstreamParentDataSet.GrandmasterClockClass; gmClass != 0 && !isTTSC {
+				e.clkSyncState[cfgName].clockClass = fbprotocol.ClockClass(gmClass)
+				e.clkSyncState[cfgName].clockAccuracy = fbprotocol.ClockAccuracy(e.LeadingClockData.upstreamParentDataSet.GrandmasterClockAccuracy)
+			}
 			glog.Info("BC FSM: HOLDOVER to LOCKED")
 			updateDownstreamData = true
 		} else if e.freeRunCondition(cfgName) {
