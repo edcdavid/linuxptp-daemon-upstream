@@ -15,7 +15,7 @@ env:
   DKMS_PKG: netdevsim
   DKMS_VER: "6.9.5"
   DKMS_REPO: https://github.com/redhat-cne/netdevsim-dkms.git
-  DKMS_BRANCH: main
+  DKMS_BRANCH: node-device
   PTP_REPO: https://github.com/edcdavid/ptp-operator-upstream.git
   PTP_BRANCH: netdevsim-dkms
 

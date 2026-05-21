@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -89,15 +91,22 @@ func (h metricHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 
-	go func() {
-		eventHandler := h.tracker.processManager.ptpEventHandler
-		eventHandler.EmitClockSyncLogs()
-		eventHandler.EmitPortRoleLogs()
+	// Test hook: artificial delay to simulate slow replay on real hardware.
+	if delayStr := os.Getenv("PTP_REPLAY_DELAY_MS"); delayStr != "" {
+		if delayMs, err := strconv.Atoi(delayStr); err == nil && delayMs > 0 {
+			glog.Infof("PTP_REPLAY_DELAY_MS: sleeping %dms before replay emit", delayMs)
+			time.Sleep(time.Duration(delayMs) * time.Millisecond)
+		}
+	}
 
-		processManager := h.tracker.processManager
-		go processManager.EmitProcessStatusLogs()
-		go processManager.EmitClockClassLogs()
-	}()
+	eventHandler := h.tracker.processManager.ptpEventHandler
+	eventHandler.EmitClockSyncLogs()
+	eventHandler.EmitPortRoleLogs()
+
+	// Non-critical emits can remain async.
+	processManager := h.tracker.processManager
+	go processManager.EmitProcessStatusLogs()
+	go processManager.EmitClockClassLogs()
 }
 
 type portAliasesHandler struct{}

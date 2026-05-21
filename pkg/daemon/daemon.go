@@ -111,7 +111,12 @@ var ptpTmpFiles = []string{
 
 var vTbcHasHardwareConfig = false
 
-const socketDialTimeout = 5 * time.Second
+const (
+	socketDialTimeout = 5 * time.Second
+	// liveStartCommand is sent on each ptp4l process connection after the live
+	// gate opens. It tells CEP that all subsequent data is live (post-replay).
+	liveStartCommand = "CMD LIVE_START"
+)
 
 func dialSocket() (net.Conn, error) {
 	c, err := net.DialTimeout("unix", eventSocket, socketDialTimeout)
@@ -125,10 +130,7 @@ func dialSocket() (net.Conn, error) {
 // sendSidecarRestart sends the CMD RESTART control command to the cloud-event-proxy sidecar
 // over a short-lived dedicated connection to the event socket. The sidecar will exec itself
 // for a clean restart, then re-read all configuration from disk (ConfigMap + ptp4l config files).
-//
-// This must be called after applyNodePTPProfiles() has written all config files and started
-// all PTP processes, so that the sidecar restarts into a consistent state.
-func sendSidecarRestart() error {
+func (dn *Daemon) sendSidecarRestart() error {
 	c, err := net.Dial("unix", eventSocket)
 	if err != nil {
 		return err
@@ -150,6 +152,7 @@ type ProcessManager struct {
 	process         []*ptpProcess
 	eventChannel    chan event.EventChannel
 	ptpEventHandler *event.EventHandler
+	daemon          *Daemon
 }
 
 // NewProcessManager is used by unit tests
@@ -378,6 +381,7 @@ type Daemon struct {
 	saFileWatcher  *fsnotify.Watcher
 	ptpClient      *ptpclient.Clientset
 	unknownPlugins []string
+
 }
 
 // UpdateHardwareConfig implements controller.HardwareConfigUpdateHandler.
@@ -511,7 +515,7 @@ func New(
 		}
 	}
 
-	return &Daemon{
+	dn := &Daemon{
 		nodeName:              nodeName,
 		namespace:             namespace,
 		stdoutToSocket:        stdoutToSocket,
@@ -529,6 +533,8 @@ func New(
 		stopCh:                stopCh,
 		saFileWatcher:         saFileWatch,
 	}
+	pm.daemon = dn
+	return dn
 }
 
 // Run in a for loop to listen for any LinuxPTPConfUpdate changes
@@ -634,6 +640,7 @@ func printWhenNotEmpty(output string) {
 // SetProcessManager in tests
 func (dn *Daemon) SetProcessManager(p *ProcessManager) {
 	dn.processManager = p
+	p.daemon = dn
 	dn.readyTracker.processManager = p
 }
 
@@ -790,7 +797,7 @@ func (dn *Daemon) applyNodePTPProfiles() error {
 	dn.pluginManager.PopulateHwConfig(dn.hwconfigs)
 	*dn.refreshNodePtpDevice = true
 	dn.readyTracker.setConfig(true)
-	return sendSidecarRestart()
+	return dn.sendSidecarRestart()
 }
 
 func reconcileRelatedProfiles(profiles []ptpv1.PtpProfile) map[string]int {
@@ -1597,16 +1604,23 @@ func (p *ptpProcess) cmdRun(stdoutToSocket bool, pm *plugin.PluginManager) {
 				doneCh <- struct{}{}
 			}()
 		} else {
+			// Single goroutine: connects to socket and scans stdout directly.
+			// No live gate — live data flows immediately, racing with replay.
 			go func() {
 			connect:
 				select {
 				case <-p.exitCh:
 					doneCh <- struct{}{}
+					return
 				default:
 					p.c, err = dialSocket()
 					if err != nil {
 						goto connect
 					}
+				}
+				if _, err2 := fmt.Fprintf(p.c, "%s\n", liveStartCommand); err2 != nil {
+					glog.Errorf("failed to write LIVE_START marker: %v", err2)
+					goto connect
 				}
 				scanner := bufio.NewScanner(cmdReader)
 				processStatus(p.c, p.name, p.messageTag, PtpProcessUp)
@@ -1622,18 +1636,16 @@ func (p *ptpProcess) cmdRun(stdoutToSocket bool, pm *plugin.PluginManager) {
 						output = fmt.Sprintf("%s[%d]%s: %s", chronydProcessName, p.cmd.Process.Pid, p.messageTag, output)
 					}
 					output = pm.ProcessLog(p.name, output)
-					// for ts2phc from 4.2 onwards replace /dev/ptpX by actual interface
 					output = p.replaceClockID(output)
 					printWhenNotEmpty(logfilter.FilterOutput(p.logFilters, output))
 
-					// for ts2phc, we need to extract metrics to identify GM state
 					p.processPTPMetrics(output)
 					if p.name == ptp4lProcessName {
 						if profileClockType == TBC {
 							p.tBCTransitionCheck(output, pm)
 						}
 					} else if p.name == phc2sysProcessName && len(p.haProfile) > 0 {
-						p.announceHAFailOver(p.c, output) // do not use go routine since order of execution is important here
+						p.announceHAFailOver(p.c, output)
 					}
 					line := removeMessageSuffix(output) + "\n"
 					_, err2 := p.c.Write([]byte(line))
